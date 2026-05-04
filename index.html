@@ -201,8 +201,23 @@
             bar.classList.add('flex');
             setTimeout(window.hideError, 5000);
         };
-        window.showModal = (id) => document.getElementById(id).classList.remove('hidden'), document.getElementById(id).classList.add('flex');
-        window.hideModal = (id) => document.getElementById(id).classList.add('hidden'), document.getElementById(id).classList.remove('flex');
+        
+        // 修復 id undefined 錯誤：使用正確的大括號函數體
+        window.showModal = (id) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.remove('hidden');
+                el.classList.add('flex');
+            }
+        };
+        
+        window.hideModal = (id) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.add('hidden');
+                el.classList.remove('flex');
+            }
+        };
 
         // 1. 身份驗證初始化
         const initAuth = async () => {
