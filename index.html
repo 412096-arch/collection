@@ -171,7 +171,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Firebase 設定
@@ -202,7 +202,6 @@
             setTimeout(window.hideError, 5000);
         };
         
-        // 修復 id undefined 錯誤：使用正確的大括號函數體
         window.showModal = (id) => {
             const el = document.getElementById(id);
             if (el) {
@@ -222,9 +221,15 @@
         // 1. 身份驗證初始化
         const initAuth = async () => {
             try {
+                // 處理跳轉回來的登入結果
+                const result = await getRedirectResult(auth);
+                if (result) {
+                    console.log("Logged in after redirect:", result.user);
+                }
+
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
+                } else if (!auth.currentUser) {
                     await signInAnonymously(auth);
                 }
             } catch (err) {
@@ -266,18 +271,18 @@
                 `;
                 document.getElementById('login-btn').onclick = async () => {
                     try {
-                        await signInWithPopup(auth, new GoogleAuthProvider());
+                        // 使用 Redirect 模式避開 COOP 彈窗限制
+                        await signInWithRedirect(auth, new GoogleAuthProvider());
                     } catch (e) {
-                        if (e.code === 'auth/unauthorized-domain') {
-                            window.showError(`請將 ${window.location.hostname} 加入 Firebase 授權名單`);
-                        }
+                        console.error("Login error:", e);
+                        window.showError("登入重導向失敗，請檢查瀏覽器設定。");
                     }
                 };
             }
             lucide.createIcons();
         };
 
-        // 2. 資料監聽 (遵循 RULE 1: /artifacts/{appId}/public/data/{collectionName})
+        // 2. 資料監聽
         let unsubscribe = null;
         const startListening = () => {
             if (unsubscribe) unsubscribe();
@@ -368,7 +373,6 @@
                 });
                 
                 window.hideModal('add-modal');
-                // Reset
                 document.getElementById('asset-name').value = "";
                 selectedBase64 = null;
                 document.getElementById('preview-img').classList.add('hidden');
@@ -382,7 +386,6 @@
             }
         };
 
-        // 初始化
         initAuth();
         lucide.createIcons();
     </script>
